@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+  echo "warning: commit message is required" >&2
+  exit 1
+fi
+
+args=("${@:2}")
+[ ${#args[@]} -eq 0 ] && args=("-a")
+
+set -x
+env                                          \
+	GIT_AUTHOR_NAME="Claude Code, Opus 4.7"  \
+	GIT_AUTHOR_EMAIL="noreply@anthropic.com" \
+	git commit -s                            \
+	-m "$1"                                  \
+	-m "Co-authored-by: $(git config user.name) <$(git config user.email)>" \
+	"${args[@]}"
+set +x
