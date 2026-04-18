@@ -1,19 +1,38 @@
 #!/bin/bash
 
-if [ -z "$1" ]; then
-  echo "warning: commit message is required" >&2
-  exit 1
+if [ $# -eq 0 ] || [ "$1" = "-h" ]; then
+  cat <<EOF
+Usage: $0 "commit message" [file1 file2 file3]
+
+Description:
+	Commit to the git repo giving Claude Code credit for creating
+	the content.
+
+Options:
+  -h             Show this help message
+
+EOF
+  exit 0
 fi
 
 args=("${@:2}")
 [ ${#args[@]} -eq 0 ] && args=("-a")
 
+CLAUDE_MODEL="${ANTHROPIC_MODEL:-$(jq -r '.model // empty' ~/.claude/settings.json 2>/dev/null)}"
+
+if [ -z "$CLAUDE_MODEL" ]; then
+  CLAUDE_MODEL="$(claude -p "tell me which model you are using as a simple string" 2>/dev/null | tr -d '\n')"
+fi
+
+CLAUDE_AUTHOR="${CLAUDE_AUTHOR:-Claude Code, $CLAUDE_MODEL}"
+CLAUDE_EMAIL="${CLAUDE_EMAIL:-noreply@anthropic.com}"
+
 set -x
-env                                          \
-	GIT_AUTHOR_NAME="Claude Code, Opus 4.7"  \
-	GIT_AUTHOR_EMAIL="noreply@anthropic.com" \
-	git commit -s                            \
-	-m "$1"                                  \
+env                                  \
+	GIT_AUTHOR_NAME="$CLAUDE_AUTHOR" \
+	GIT_AUTHOR_EMAIL="$CLAUDE_EMAIL" \
+	git commit -s                    \
+	-m "$1"                         bb \
 	-m "Co-authored-by: $(git config user.name) <$(git config user.email)>" \
 	"${args[@]}"
 set +x
